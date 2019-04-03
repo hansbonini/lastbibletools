@@ -1,0 +1,62 @@
+
+//================================================================
+// "cheat" character names.
+// if the player gives these to a character, certain things
+// happen.
+//================================================================
+
+//=======================================
+// character 0 cheat name
+//=======================================
+
+// tilemap 0
+#STARTMSG(0x18194, 7, 1)
+
+// えぬおやし゛　
+// note: "Grandpa N.", the main programmer's pseudonym
+Grandpa
+
+#ENDMSG()
+#BREAK()
+
+//=======================================
+// character 1 cheat name
+//=======================================
+
+// tilemap 0
+#STARTMSG(0x1819B, 7, 1)
+
+// つよいはす゛ー
+Muscles
+
+#ENDMSG()
+#BREAK()
+
+//=======================================
+// character 2 cheat name
+//=======================================
+
+// tilemap 0
+#STARTMSG(0x181A2, 7, 1)
+
+// たしたしきゅー
+Booster
+
+#ENDMSG()
+#BREAK()
+
+//=======================================
+// sound test cheat -- give this name
+// to char0
+//=======================================
+
+// tilemap 0
+#STARTMSG(0x181A9, 7, 1)
+
+// たしたしきゅー
+Sound<$90><$90>
+
+#ENDMSG()
+#BREAK()
+
+

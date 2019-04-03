@@ -1,0 +1,368 @@
+
+data:
+  D08: subprogram data table
+      format
+         * 1b slot1 bank
+         * 1b slot2 bank
+         * 2b subprogram main routine address
+       subprograms:
+        0 = init 1?
+          01 02 7D3D
+        1 = init 2?
+          01 02 7DE2
+        2 = sega logo, intro, title, character naming...
+          06 02 4000
+        3 = overworld
+          01 02 4000
+        4 = battle
+          03 02 4000
+        5 = sound test
+          01 02 7BC8
+        6 = ending
+          06 02 4012
+        7 = credits
+          06 02 4009
+  ~1BC0: [FE]を　てにいれた！[wait][end]
+  1EF4 = DTE table (0x33 entries?)
+         for diacritics?
+  3B2D: 0x11 menu data pointers
+  
+  ~18340 = default character names
+
+routines:
+  6: useJumpTable
+  18: setVdpWriteAddr
+  B9: wait for frame
+  3AC: pollInput?
+  99F: decmpGrp
+  C77: longjmp
+       3 bytes following call are slot 1 bank, pointer
+  D70: send wrapped tilemap
+  E71: wrapVdpScrollYCoord
+  1034: switchSlot2And???
+  
+  1145: localCoordsToNametableAddr
+  1174: incAndWrapNametableAddr
+  1182: incRowAndWrapNametableAddr
+  1197: setCharArea
+        * does this need vwf deallocation?
+  13A1: toBcd
+        D200-D202 = input (little-endian)
+        output:
+          * D20C = digit count
+          * D20D+ = digits, 1 per byte, in reverse order
+  14CF: lookUpPartyMemberStruct?
+  14ED: lookUpSpell?
+  14FA: lookUpItem?
+  
+  1D4E: print bank 4 string?
+  1D74: printString
+        main print routine for dialogue strings
+  1FFC: open dialogue box?
+  2058: print7CharLimitedString
+  205A: printLimitedString
+        print a string consisting only of literals (no ops) that is
+        terminated either by the first space character (0x90) reached,
+        or after printing C characters
+  206E: instaPrintLimitedString
+  20F9: printCharToLocalCoords
+        print a character to sms-local coords (i.e. [6, 3] == top-left corner
+        of game gear screen)
+        HL = local x/y?
+  2101: printChar
+        print a character (incrementing nametable putaddr in X)
+  2119: printTile
+  212F: increment print nametable vdpaddr?
+  2A04: closeDialogueBox
+  2A3C: openWindow
+        opens window of type identified by A
+        see type info pointer table at 867F
+        if high bit of A unset, also saves nametable content behind
+        window area to the window bg stack
+        * 9, b, d are full-screen windows:
+          - 09 = standard full-screen with border
+                 used for items, character status (with added border), etc.
+          - 0B = character level up -- two equal-sized boxes
+          - 0D = naming screen -- two boxes, top one smaller
+  2ADB: restoreWindowBackground
+        A == type
+        restores nametable content of topmost bg on window bg stack
+  2B2C: saveWindowBackground?
+  2B55: saveWindowBackgroundFromParams?
+        * this is what we care about for marking vwf tiles as nodealloc
+  2BB8: printItemList
+  3A23: runMenu?
+  3A4E: printMenu
+  
+  
+  44CF: map change?
+  4E64: open main menu
+  
+  C4B6: append number to each enemy's name indicating slot
+  C6AF: draw list of inventory items
+  CCE2: draw list of enemy targets
+  
+  18A24: alternate print routine used for ???
+  18A5A: alternate print routine used for intro
+  18FB1: playCutscene
+         A = scene ID
+         handles scrolling text (intros, credits) as well as things like
+         character eye animations
+  
+memory:
+  C340: ?
+  C400: palettes?
+  C440: buttons pressed
+  C441: buttons triggered
+  C450: vblank flag
+  C460: nametable x-scroll
+  C462: nametable y-scroll
+  C480: count of party members?
+  C504: user's text speed setting (00 = fast, 01 = medium, 02 = slow)
+  C540: held items
+    C540: count of items (limit 28)
+    C541, C543, C545 ... = item indices
+    C542, C544, C546 ... = nonzero if item is equipped to anyone
+  C580: party character data arrays, 0x40 bytes each, 12 or 13 slots total
+        * 1b ID num?
+        * 7b name (padded with 0x90)
+        ...
+        0x11 = "base" stats
+  C8C0: enemy data arrays, 0x40 bytes each -- 8 slots total
+        see 14CF
+        slots 0-3 are for enemy type 1, slots 4-7 are for enemy type 2
+  CAC4: nextPlayerX?
+  CAC5: nextPlayerY?
+  CAC9: number of alt-tile checks made for wall push
+  CACA: flag: if nonzero, transfer nametable at vblank using the following
+        parameters
+  CACB-CACC: w/h of window being opened/closed?
+  CACD: ?
+  CACF-CAD0: ? nametable addr?
+  CB63: on character naming screen, buffer for name
+  CB6B: on character naming screen, index of character currently being named
+  CB6E: scrolling print control flags
+  CB6F: scrolling print no-user-speedup flag
+  CB79: text pointer during intro
+  CBC2: 2b array of enemy types
+  CBC6: 2b array of enemy quantities
+  CF80: ? flags dialogue box as open?
+        clearing when set causes area under box not to get redrawn
+        when box is closed
+  CF87: flag: if set, vblank saves a defined area to the window stack(?)
+  CF90: base print X (screen-local relative to Game Gear screen area)
+  CF91: base print Y (screen-local relative to Game Gear screen area)
+  CF92: text speed, or 0 to use player's current setting (and allow
+        fast-forward with buttons)
+  CF94: current linenum
+  CF97: current nametable write command during dialogue printing
+  CF99: "active" party member's charid for op F5
+  CF9B: item id?
+  CF9D: "active" enemy's charid for op F7
+  CF9F: instant text print flag -- if nonzero, dialogue prints all
+        at once instead of character by character
+  CFC0: ? pointer to buffer for some prints?
+        see e.g. 134C
+  CFC2: count of "windows" on stack
+  CFC3: 4b structs identifying buffered content behind open "windows" on stack
+        * 2b buffer pointer
+        * 2b nametable src/dst
+        w/h is not stored! users are expected to track the "window" type and
+        use it to call restoreScreenArea as needed
+  D000-D7FF are used temporarily as graphics decompression buffer and
+            cleared afterwards
+  D20C: ? buffer for ?
+  
+  D805: decompression need interrupt disable flag
+  D8XX+: decompression buffer
+  
+  DFE2: current subprog num
+  DFE4: next subprog num??
+  DFE9: frame counter?
+
+opcodes:
+  F0 = member name
+       * 1b ID (0x00 or 0x80-based)
+  FC = nop
+  FE = ?
+  
+cheat codes:
+  each character has a special name that gives them cheat stats:
+    char0: えぬおやし゛　
+    char1: つよいはす゛ー
+    char2: たしたしきゅー
+  specifically, these copy the 0xE bytes at 0x181BE to
+  (character slot start + 0x16), whatever that is.
+  seems to set "adjusted" stats that are recalculated whenever armor is changed,
+  so you have 255 of attack/others as long as you don't change the character's
+  equipment?
+  data: 0A 64 FF 00 FF 00 FF 00 00 00 00 00 00 00
+
+19ABA: script data for credits + post-credits
+  05 1D 77: do scrolling text (1B71D)
+  0D 10 F0: delay?
+  09 DD 5E: tilemap transfer from 5EDD = 19EDD = start of "the end" text
+19ADC?
+187EB: jump table for script commands
+  00 = 18EFF
+  01 = 18E6A
+  02 = 18C8E
+  03 = 18E31
+  04 = 189D8
+       print an auto-printing string (intro)
+  05 = 188D4
+       start scrolling text
+       * 2b pointer
+  06 = 000F (nop)
+  07 = 000F (nop)
+  08 = 18B9F
+  09 = 18BFD
+       tilemap transfer
+       * 2b info pointer
+  0A = 18C75
+  0B = 18E5F
+       jump to an arbitrary routine
+       * 2b pointer
+  0C = 18BC3
+       graphics decompression
+  0D = 18C50
+       wait
+       if B nonzero, increments CB77 until CB77 == B
+       if A nonzero, waits until CB6E == A
+  0E = 188C2
+       enable scene skipping?
+  0F = 188CB
+       disable scene skipping?
+  10 = 18DF5
+       toggle something?
+  11 = 18E07
+  12 = 18C83
+  13 = 18817
+  14 = 1884E
+  15 = 19089
+       print bank 4 string to standard box
+  
+  16 = 18EFD
+  17 = FD00
+195DD = decompress title graphics for start of intro
+  * 19DB7 = tilemap info
+19698 = end of intro
+196BB = start of title burn-in sequence
+  * tilemap structs at 19E27, 19E2E, ..., 19ED6
+
+todo:
+  * no wall-push option
+  * casting spells from field may be able to consume more tiles than we have
+  * don't send vwf buffer after every character when printing instantly
+  * are all overlay messages on ally select getting deallocated?
+  * item articles? maybe?
+  * REMEMBER TO UPDATE:
+    I'll buy the [item] for[br]
+    $[num]. Do we have a deal?[wait][end]
+  * oh and the speech emulation flag is not getting initialized after clearing
+    the game(?)
+  
+done:
+  * graphics decompressed during battle overwrite allocation array --
+    does it matter?
+    (yes, for character names at least)
+    - actually, the best solution here might be to move the decompression
+      array to expansion RAM and leave our stuff untouched
+      - switch decompressor to get data from slot 1?
+    - which comes out worse: copying 0x100 bytes twice or switching to
+      expansion RAM for every compression command?
+  * reset vwf after intro (do it on all map transitions?)
+  * sound test
+  * width of stats on level up/stat screen
+  * hardcode non-allocation of preserved tiles (!, O, etc.) during expanded
+    vwf usage in full-screen menus
+  * lines:
+    * untranslated:
+    // なんであなた　いっしょに[br][scroll]
+    // つれてきてくれなかったのっ！？[br]
+    * check: (message for disallowed duplicate character name)
+    // ひとのなまえをいってはならない！[wait2][end]
+  * why in the hell does having a symbol in the font named "[bigzero]" break
+    the entire build when any other name works fine?????????????
+    * answer: you had both 00 and FF labelled as "[end]"
+  * enemy target list special sauce printing (see routine at CCE2)
+  * save file display almost certainly does nonstandard printing
+    * actually, it doesn't! wow??
+  * watch out for "but..." that's displayed after waiting 5 minutes on
+    "the end" screen
+  * hardcoded dash on character stats screen
+  * width of flasher on stat increase selection screen
+  * where is the "お　し　ま　い" string?
+    * it's actually 4 1x1 tilemaps sent with the script system
+  * deallocate stuff during intros
+    * also, do the intros
+  * たい in multiple enemy target selection box
+  * lines:
+    * check:
+      // [enemy]は　[ally]に[br]
+      // [num]の　ＭＰを　うばわれた！[wait2][end]
+      [enemy] stole [num] MP[br]
+      from [ally]![wait2][end]
+  * ラルン vs. ラールン? both are currently "rarung"
+  * also, discrepancies between バスター as "Buster" and "Vasta"
+  * "x was obtained" messages overwrite window -- deallocate vwf first
+  * deallocation when switching between stats/magic on status screen
+  * 7-tile selectables:
+    * there are exactly two enemy names that will not fit on the ally menu
+      with the regular font: "Scorpion Man" and "Universal Will".
+      the latter obviously isn't recruitable, so can we get away with this?
+    * items:
+      * Lete Droplet (1px over limit!! actually, we can get away with this, since
+        it's just the blank space at the end of the last letter)
+      * Dragon Bone 1/2/3
+      * Water Charm
+    * equipment (with icons):
+      * Moon Knight Sword
+      * Iron Cutter Sword
+      * Evil Slayer Sword
+    * spells?
+      * no, actually these all seem to be good
+  * enemies with 7-character names (e.g. final boss) should not get enumerated
+  * sound test deallocation
+  * save/load menu deallocation
+  * overlay messages on e.g. item and ally select screens should be set up to
+    deallocate the content behind them, since otherwise we won't have enough
+    VRAM for them worst-case
+    * ... actually, what we already do for garbage collection (clear everything,
+      even reserved tiles) works, although glitches tiles are visible for a frame
+      or two after the box closes. clear content behind them before opening?
+  * deallocate digits on money deposit/withdrawal screen
+  * names on status line seem to not be getting deallocated in battle
+  * figure out how the hell to make a mutation happen
+    * still don't know, but if it happens it should work
+  * fix [num] always insta-printing?
+  * deallocate fusion stuff
+  * closing the combine menu causes something to not get deallocated
+  * whatever the hell is happening with solion's recruitment message
+  * game decreases text speed during ending?
+  * untranslated:
+    // われわれが　このほしの[br][scroll]
+    // かみとなるのだ！[br]
+    // [wait][scroll]
+  * move "beast's possessions" right 3 pixels or so
+  * "but..." centering?
+  * new game/continue centering?
+  * no enemy enumeration on "called for help" message? check original
+  * money/money on deposit screen
+  * remember to update:
+    // なまえ　　　　　ＨＰ　　　ＭＰ[end]
+    Name[tilebr][tilebr][tilebr][tilebr][tilebr][tilebr]HP[tilebr][tilebr][tilebr][tilebr]MP[end]
+  * I'm afraid you don't have anything there![wait][end]
+    -> I'm afraid you don't have anything![wait][end]
+  * message for trying to withdraw money while having too much already:
+    We can't hold that many things![wait][end]
+    -> You can't hold that much![wait][end]
+  * You don't have that much deposited here, though.
+    (?) -> You don't have anything deposited here, though.
+  * [char2]: Ahhhh!
+    -> [char2]: Ahhhh![wait][clear]
+
+* consider using prerendered item and/or spell labels on appropriate screens
+  for better speed
+
+

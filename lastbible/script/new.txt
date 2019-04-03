@@ -1,0 +1,77 @@
+
+
+//==============================================
+// plural version of enemy encounter message.
+// [stringbuf] will have been set in code to something like
+// "Two Tsuchigumos".
+//==============================================
+
+// [enemy]が[num]たいあらわれた！[br]
+// [end]
+[stringbuf] appeared!
+[end]
+
+#ENDMSG()
+#BREAK()
+
+//==============================================
+// "the end" message after credits.
+// in the original game, this is done with
+// tilemaps for some reason.
+//==============================================
+
+// お　し　ま　い
+T H E     E N D
+[end]
+
+#ENDMSG()
+#BREAK()
+
+//==============================================
+// new system menu
+//==============================================
+
+Save[br]
+Messages[br]
+Print Mod[smalle]
+[end]
+
+#ENDMSG()
+#BREAK()
+
+//==============================================
+// new print mode menu
+//==============================================
+
+Pauses[br]
+No pauses
+[end]
+
+#ENDMSG()
+#BREAK()
+
+//==============================================
+// new print mode menu explanation
+//==============================================
+
+// wow we have no vram space for this
+Turn punctuation pauses on or[br]
+off.
+
+//Set punctuation pauses.
+
+[end]
+
+#ENDMSG()
+#BREAK()
+
+//==============================================
+// new print mode menu label
+//==============================================
+
+Punctuation
+[end]
+
+#ENDMSG()
+#BREAK()
+

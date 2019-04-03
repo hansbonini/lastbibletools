@@ -1,0 +1,16 @@
+
+// table used to map positions on the name entry screen to actual
+// character indices.
+// this does _not_ determine the visual layout of the screen.
+// see menus.txt for that.
+// the visual layout must be kept in sync with this file.
+// and in any case the cursor navigation is totally hardcoded.
+
+ABCDEFGHI
+JKLMNOPQR
+STUVWXYZ-
+abcdefghi
+jklmnopqr
+stuvwxyz 
+
+#ENDMSG()

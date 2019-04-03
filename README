@@ -1,0 +1,213 @@
+********************************************************************************
+*                 Megami Tensei Gaiden: Last Bible (Game Gear)                 *
+*                     English Translation Patch Materials                      *
+********************************************************************************
+
+This package contains the source materials (code/art) for the English
+translation project for the Game Gear game Megami Tensei Gaiden: Last Bible.
+                    
+                                IMPORTANT NOTE:
+  
+  By Tom's request, this project does not include his translated game script. 
+The project will not build as-is. You will need to extract the script from the 
+patched game binary and regenerate the script files yourself. See the section 
+"Extracting the Script" for details.
+
+                    ****************************************
+                    *          Build Instructions          *
+                    ****************************************
+                    
+The build system is only set up for Unix-like systems, though none of the code
+is fundamentally dependent on this and could be ported with a bit of effort.
+You'll need GCC and libpng.
+
+Get a ROM image of the original game. It should match these specifications:
+
+  No-Intro filename: Megami Tensei Gaiden - Last Bible (Japan).gg
+  CRC32:             2E4EC17B
+  MD5:               AB54600E28D866558323381F74FE2749
+  SHA-1:             D98332EBA27FD4A0DB82D551A54BEE4FDCCF41A2
+
+Rename it "lastbible.gg" and place it in the "lastbible" folder. Then:
+
+$ cd lastbible
+$ ./build.sh
+
+build.sh should then build all the necessary tools and output the translated
+ROM as lastbible_en.gg. Note, again, that the build process will fail unless you 
+have
+extracted the script yourself using the directions in "Extracting the Script".
+
+If you want to modify the project, check build.sh to see where the resources
+that get inserted into the game are coming from.
+
+                    ****************************************
+                    *        Extracting the Script         *
+                    ****************************************
+
+As noted above, this project does not include the translated game script. Here 
+is some information on how you can extract it from the translated ROM. The 
+instructions in this guide are written with reference to version 3 of the patch 
+(patched ROM MD5 sum: 16879fe9fdff6822dbf48560ca7bf6bb).
+
+First, get the game and apply the English translation patch to it. I've included 
+version 3 of the patch in the repository as lastbible/lastbible_patch.ips.
+
+Located in lastbible/script is a mostly-empty folder where the script files need 
+to be placed. A small number of files that contained entirely new content have 
+been left intact and pre-placed in lastbible/script. lastbible/script_scraped 
+contains the remaining script files, but with all content other than script 
+directives removed.
+
+Here is a list of files you must regenerate and place in lastbible/script:
+  * credits.txt
+  * dialogue.txt
+  * enemies.txt
+  * enemies_plural.txt
+  * items.txt
+  * menus.txt
+  * scroll1.txt
+  * scroll2.txt
+  * spells.txt
+
+These files fall into three categories, each of which needs to be extracted 
+differently.
+
+  ==================
+  = Scrolling Text =
+  ==================
+  
+Files:
+  * scroll1.txt
+  * scroll2.txt
+  * credits.txt
+
+These are the source files for the scrolling text sequences at the start and end 
+of the game. Unlike the original game, the translation does not store them as 
+text -- they are rendered to graphics during the build process, which means they 
+can't easily be extracted like other material. The easiest thing to do is 
+probably just to copy them by eye. For these files only, each line of text must 
+be followed by an #ENDMSG directive.
+
+  ===============
+  = Tabled Text =
+  ===============
+  
+Files:
+  * enemies.txt        -- ROM offset 0xaeb10, 115 entries
+  * enemies_plural.txt -- ROM offset 0xaef39, 115 entries
+
+These script files are stored in the translated ROM using offset tables -- one 
+16-bit offset from the base address of the table per string. To regenerate them, 
+extract each table entry using lastbible/table/lastbible_vwf_en.tbl and wrap the 
+content with the #STARTMSG and #ENDMSG directives.
+
+  =================
+  = Remapped Text =
+  =================
+  
+Files:
+  * dialogue.txt
+  * items.txt
+  * menus.txt
+  * spells.txt
+
+These script files are stored in the game using a universal hash table that 
+remaps the original Japanese string pointers to the corresponding English ones. 
+Here is how it is used:
+
+  1. Given the address of a string from the Japanese version of the game, AND it 
+with 0x0FFF, then multiply by 4. As an example, suppose there is a string at 
+0x6C038 in the Japanese game; the corresponding value is 0xE0.
+  
+  2. ROM 0x80000 contains the bucket list pointers for the hash table. Take the 
+value from Step 1 and add it to 0x80000 to get the address of the bucket list 
+infostruct (0x800E0 in our example).
+  
+  3. The address you derived in Step 2 points to a struct that gives the 
+position of a list of hash buckets. The format is:
+     * 1b bank number
+     * 2b slot2 pointer
+     * 1b dummy
+     
+     If the bank number is 0xFF, then the bucket list for that hash key is empty 
+(and whatever string you are attempting to find does not exist).
+     
+  4. Convert the bucket list information to an absolute ROM address: ((banknum * 
+0x4000) + (slot2ptr - 0x8000)). This yields the ROM address of the actual bucket 
+list.
+     
+     For our example, suppose the banknum is 0x21 and the pointer is 0x807C; the 
+bucket list is thus located at 0x8407C.
+     
+  5. The address from Step 4 consists of a series of hash buckets of the 
+following format:
+     * 1b bank number of original Japanese string
+     * 2b pointer to original Japanese string (using the original slotting 
+information, so 0x0000-0x3FFF for slot 0 pointers, etc.)
+     * 1b bank number of new English string
+     * 2b slot2 pointer to new English string
+     
+     If the bank number is 0xFF, you've reached the end of the bucket list.
+     
+  6. Take the Japanese string address you started out with in Step 1 and convert 
+it to SMS bank/pointer format using the original slot information. Supposing our 
+string at 0x6C038 is accessed through slot2, its pointer is 0x8038 and its slot 
+is 0x1B. Then, simply scan through the bucket list until you find an entry with 
+a matching bank/pointer.
+  
+  7. Having found the matching Japanese string, simply convert the corresponding 
+English pointer to an absolute ROM address. In the given example, we find that 
+our target string is located at 2F:9864, or ROM 0xBD864.
+
+To regenerate the remapped script files, you need to write a program that does 
+the following:
+
+  1. Scan each line of the scraped script file for directives (lines beginning 
+with '#').
+  
+  2. Copy all directives other than #STARTMSG directly to the output file.
+  
+  3. For #STARTMSG directives, parse the following three fields from the 
+directive:
+     * Parameter 1: original string offset
+     * Parameter 2: original string length
+     * Parameter 3: original string slot number (0, 1, or 2)
+     
+     For the previous example, the #STARTMSG directive looks like this:
+     #STARTMSG(0x6C038, 14, 2)
+     
+  4. Do the hash lookup from the ROM as previously described in order to get the 
+address of the corresponding translated string.
+  
+  5. Extract the English string using the table file in 
+lastbible/table/lastbible_vwf_en.tbl. 0xFF is the string terminator.
+  
+  6. Output the #STARTMSG directive, then the translated string.
+  
+This should yield a full script file that you can copy over the "scraped" file.
+
+If you also want the original Japanese strings, use 
+lastbible/table/lastbible.tbl to read from the old string address. You may find 
+it helpful to consult lastbible/src/lastbible_scriptdmp.cpp, the original script 
+dumping program.
+
+Note that the script directives also set up the automatic line wrapping 
+performed when the script is compiled, but the extracted script will have 
+built-in hard linebreaks that override it. You'll want to remove those so the 
+line wrapper can do its job.
+
+                    ****************************************
+                    *              Licensing               *
+                    ****************************************
+
+See COPYING. Basically, everything by me (Supper) is GPLv3, and everything else
+is under the terms of whoever wrote it.
+
+                    ****************************************
+                    *               Credits                *
+                    ****************************************
+
+                                  Tom -- Translation
+                               Supper -- Hacking
+

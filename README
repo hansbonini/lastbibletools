@@ -35,8 +35,8 @@ $ ./build.sh
 
 build.sh should then build all the necessary tools and output the translated
 ROM as lastbible_en.gg. Note, again, that the build process will fail unless you 
-have
-extracted the script yourself using the directions in "Extracting the Script".
+have extracted the script yourself using the directions in "Extracting the
+Script".
 
 If you want to modify the project, check build.sh to see where the resources
 that get inserted into the game are coming from.
